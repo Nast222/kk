@@ -81,13 +81,88 @@ class WeatherDiaryApp:
          try:
              datetime.strptime(date, '%Y-%m-%d')
          except ValueError:
-             messagebox.showerror("Ошибка", "Дата должна быть в формате ГГГГ-ММ-ДД (например:Вот полный рабочий код для приложения **«Weather Diary»** (Дневник погоды) на Python с использованием Tkinter, а также подробные инструкции по настройке Git и созданию README.
+             messagebox.showerror("Ошибка", "Дата должна быть в формате ГГГГ-ММ-ДД (например: 2026-05-02)")
+             return
 
----
+         if not temp.replace('.', '', 1).isdigit():
+             messagebox.showerror("Ошибка", "Температура должна быть числом!")
+             return
 
-### Полный рабочий код: `weather_diary.py`
-    
-    
+         # Добавление в таблицу и список
+         self.tree.insert('', 'end', values=(date + "  ", temp + " °C", desc + "  ", rain))
+         self.records.append({
+             "date": date,
+             "temperature": float(temp),
+             "description": desc,
+             "rain": rain == "Да"
+         })
+
+         # Очистка полей
+         self.date_entry.delete(0, tk.END)
+         self.temp_entry.delete(0, tk.END)
+         self.desc_entry.delete(0, tk.END)
+         self.rain_var.set("Нет")
+         self.date_entry.focus()
+
+         messagebox.showinfo("Успех", "Запись добавлена!")
+
+    def filter_records(self):
+         filter_date_text = self.filter_date.get().strip()
+         filter_temp_text = self.filter_temp.get().strip()
+         
+         try:
+             filter_temp_val = float(filter_temp_text) if filter_temp_text else None
+         except ValueError:
+             filter_temp_val = None
+
+         for row in self.tree.get_children():
+             values = self.tree.item(row)['values']
+             record_date = values[0].strip()
+             record_temp_str = values[1].replace(' °C', '').strip()
+             
+             try:
+                 record_temp_val = float(record_temp_str)
+             except ValueError:
+                 record_temp_val = 0
+
+             date_match = (not filter_date_text) or (filter_date_text == record_date)
+             temp_match = (filter_temp_val is None) or (record_temp_val > filter_temp_val)
+
+             if date_match and temp_match:
+                 self.tree.item(row, tags='')
+                 self.tree.tag_configure('', elide=False)  # Показать
+             else:
+                 self.tree.item(row, tags='hidden')
+                 self.tree.tag_configure('hidden', elide=True)  # Скрыть
+
+    def save_to_json(self):
+         with open('weather.json', 'w', encoding='utf-8') as f:
+             json.dump(self.records, f, ensure_ascii=False, indent=4)
+         messagebox.showinfo("Успех", "Данные сохранены в weather.json")
+
+    def load_from_json(self):
+         try:
+             with open('weather.json', 'r', encoding='utf-8') as f:
+                 self.records = json.load(f)
+             
+             # Очистка таблицы перед загрузкой
+             for row in self.tree.get_children():
+                 self.tree.delete(row)
+             
+             for rec in self.records:
+                 rain_str = "Да" if rec["rain"] else "Нет"
+                 self.tree.insert('', 'end', values=(rec["date"], f"{rec['temperature']} °C", rec["description"], rain_str))
+             
+             messagebox.showinfo("Успех", "Данные загружены из weather.json")
+         except FileNotFoundError:
+             messagebox.showinfo("Информация", "Файл weather.json не найден. Будет создан при сохранении.")
+         except json.JSONDecodeError:
+             messagebox.showerror("Ошибка", "Файл weather.json повреждён или пуст.")
+
+if __name__ == "__main__":
+     root = tk.Tk()
+     app = WeatherDiaryApp(root)
+     root.mainloop()
     
     
     
